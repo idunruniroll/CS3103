@@ -57,7 +57,7 @@ def accept_caption(msg):
     segment = msg.get("segment")
     revision = msg.get("revision")
     source_ts = msg.get("source_ts")
-    is_final = msg.get("is_final")
+    is_final = msg.get("final")
 
     if (type(segment) is not int or segment <= 0
         or type(revision) is not int or revision <= 0
@@ -92,9 +92,15 @@ def accept_caption(msg):
         ACTIVE_SEGMENT = None
         prune_history()
 
+        print(
+            f"Stored final segment {segment}, "
+            f"history size={len(FINAL_HISTORY)}",
+            flush=True
+        )
+
     return True
 
-def build_history():
+def build_history(hello):
     """build incremental history for connecting a client"""
     prune_history()
 
@@ -181,9 +187,21 @@ async def handle_client(ws, hello: dict[str, Any]) -> None:
     # The baseline has no stored recovery state. Sending an empty HISTORY makes
     # the connection behavior visible and keeps the starter easy to inspect.
     # Students must implement correct HISTORY semantics for the assignment.
-    await ws.send(json.dumps({"type": "HISTORY", "items": []}))
-
+    # Register before sending history so live updates arriving
+    # during connection setup are not silently missed.
     CLIENTS.add(ws)
+
+    try:
+        history = build_history(hello)
+        await ws.send(json.dumps(history))
+
+        print(
+            f"client {client_id}: sent {len(history['items'])} recovery captions",
+            flush=True
+        )
+    except Exception:
+        CLIENTS.discard(ws)
+        raise
     print(f"client connected: id={client_id}; clients={len(CLIENTS)}", flush=True)
     try:
         # Student clients normally don't send further messages after hello.
