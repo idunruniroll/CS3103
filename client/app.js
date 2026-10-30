@@ -26,6 +26,10 @@ const HISTORY_WINDOW_MS = 60 * 1000;
 let recallWindowSeconds = null; // current displayed recall window (null = not opened)
 
 let ws;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+let lastFinalSegment = 0;
+let lastFinalRevision = 0;
 
 function numericClientId() {
   const key = "liverecall-client-id";
@@ -48,7 +52,7 @@ function numericClientId() {
 function pruneHistory() {
   const cutoff = Date.now() - HISTORY_WINDOW_MS;
   for (const [segment, caption] of finalHistory) {
-    if (caption.receivedAt < cutoff) {
+    if (caption.captionTime < cutoff) {
       finalHistory.delete(segment);
     
       // remove expired finalised state
@@ -62,7 +66,23 @@ function pruneHistory() {
   }
 }
 
+
+function updateFinalCursor(msg) {
+  if (!msg.final) return;
+
+  if (msg.segment > lastFinalSegment ||
+    (msg.segment === lastFinalSegment &&
+      msg.revision > lastFinalRevision)
+  ) {lastFinalSegment = msg.segment;
+    lastFinalRevision = msg.revision;}
+}
+
+
 function renderCaption(msg) {
+  if (!Number.isFinite(msg.source_ts) || msg.source_ts * 1000 < Date.now() - HISTORY_WINDOW_MS) {
+    return;
+  }
+  
   // retrieve the latest accepted revision for this segment
   const existing = segments.get(msg.segment);
 
@@ -86,7 +106,15 @@ function renderCaption(msg) {
     row = document.createElement("div");
     row.id = `segment-${msg.segment}`;
     row.className = "naive-line";
-    liveEl.appendChild(row);
+
+    const nextRow = [...liveEl.children].find(
+      child => {
+        const id = Number(child.id.replace("segment-", ""));
+        return Number.isFinite(id) && id > msg.segment;
+      }
+    );
+
+    liveEl.insertBefore(row, nextRow ?? null);
   }
 
   // update the row using the latest revision
@@ -101,6 +129,7 @@ function renderCaption(msg) {
 
   // store the latest revision
   segments.set(msg.segment, msg);
+  updateFinalCursor(msg);
 
   // save finalised captions to local history
   if (msg.final) {
@@ -108,7 +137,9 @@ function renderCaption(msg) {
       segment: msg.segment,
       revision: msg.revision,
       text: msg.text,
-      receivedAt: Date.now()
+      receivedAt: Date.now(),
+      sourceTs: msg.source_ts,
+      captionTime: msg.source_ts * 1000
     });
   }
 
@@ -134,8 +165,8 @@ function showRecall(seconds = 30) {
 
   // keep only finalised captions within the recall window
   const recentCaptions = [...finalHistory.values()]
-    .filter(caption => caption.receivedAt >= cutoff)
-    .sort((a, b) => a.receivedAt - b.receivedAt);
+    .filter(caption => caption.captionTime >= cutoff)
+    .sort((a, b) => a.captionTime - b.captionTime);
 
   // clear the recall view
   recallEl.replaceChildren();
@@ -166,14 +197,16 @@ function connect() {
   ws = new WebSocket(WS_URL);
 
   ws.addEventListener("open", () => {
+    reconnectAttempts = 0;
+    clearTimeout(reconnectTimer);
     statusEl.textContent = "connected";
     ws.send(JSON.stringify({
       type: "CLIENT_HELLO",
       client_id: numericClientId(),
       session: "L1",
-      last_segment: 0,       // TODO: resume latest finalized state
-      last_revision: 0,
-      history_seconds: 30
+      last_segment: lastFinalSegment,
+      last_revision: lastFinalRevision,
+      history_seconds: 60
     }));
   });
 
@@ -182,14 +215,41 @@ function connect() {
     if (msg.type === "CAPTION_UPDATE") {
       renderCaption(msg);
     } else if (msg.type === "HISTORY") {
-      console.log(`HISTORY with ${msg.items?.length ?? 0} item(s)`, msg);
-      // TODO: merge history without stale/duplicate final captions.
+      console.log("Recovery HISTORY:", msg);
+      const items = Array.isArray(msg.items) ? msg.items : [];
+
+      // recover finalized captions in segment order
+      items.sort((a, b) =>
+        a.segment - b.segment || a.revision - b.revision
+      );
+
+      for (const caption of items) {
+        if (caption.type === "CAPTION_UPDATE" && caption.final) {
+          renderCaption(caption);
+        }
+      }
+
+      console.log(`Processed ${items.length} recovery items`);
     }
   });
 
+  
   ws.addEventListener("close", () => {
-    statusEl.textContent = "disconnected";
-    // TODO: automatic reconnect after a short delay, using finalized resume state.
+    statusEl.textContent = "disconnected — reconnecting";
+
+    // exponential backoff, capped at 5s
+    const delay = Math.min(
+      1000 * (2 ** reconnectAttempts),
+      5000
+    );
+
+    reconnectAttempts++;
+
+    clearTimeout(reconnectTimer);
+
+    reconnectTimer = setTimeout(() => {
+      connect();
+    }, delay);
   });
 
   ws.addEventListener("error", () => {
@@ -204,4 +264,14 @@ for (const button of document.querySelectorAll("button[data-seconds]")) {
   });
 }
 
+// start browser connection
 connect();
+
+// keep 60s hisotry bounded as time passes, even when caption source is temp idle
+setInterval(() => {
+  pruneHistory();
+
+  if (recallWindowSeconds !== null) {
+    showRecall(recallWindowSeconds);
+  }
+}, 1000); 
