@@ -20,3 +20,6 @@ results/
 # OS
 .DS_Store
 Thumbs.db
+
+# Experiment raw logs (summaries/JSON in experiments/data are committed)
+experiments/data/*.csv
