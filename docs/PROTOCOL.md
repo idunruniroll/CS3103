@@ -51,7 +51,7 @@ Nothing assumes a fixed number of revisions per segment.
 
 On `CLIENT_HELLO(last_segment=S, last_revision=R, history_seconds=H)`:
 
-1. `items` = every final accepted by the server in the last `H` seconds whose
+1. `items` = every retained final accepted by the server in the last `H` seconds whose
    `(segment, revision)` is greater than `(S, R)`, sorted by segment.
 2. After `HISTORY`, the server sends the latest provisional revision of every
    still-active segment newer than `S`, so a late joiner immediately sees the
