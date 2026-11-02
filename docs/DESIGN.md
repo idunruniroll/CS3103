@@ -158,9 +158,6 @@ refer to commit `bfa2c46` unless reproduced on a newer commit.
   each client, which converges but is not an explicit fair-share scheduler.
 * Single process, single event loop. Larger deployments may require sharding
   or multiple workers; public tests do not establish capacity at that scale.
-* No single automated integration test covers semantic queue overflow, close
-  1013, reconnect, and `HISTORY` recovery as one sequence. Existing tests cover
-  queue overflow and cursor recovery separately.
 
 ## 9. Viva quick reference
 

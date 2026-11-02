@@ -31,7 +31,8 @@ Confirm the remaining names and student IDs before submission.
 | `tests/` | Unit and end-to-end tests (standard-library `unittest`) |
 | `experiments/` | Scripts for T1–T5, the policy comparison and a portable bandwidth emulator |
 | `docs/` | `PROTOCOL.md`, `DESIGN.md`, `DEMO_SCRIPT.md` |
-| `report/` | Report source (`report.md`) → `report.pdf` |
+| `report.pdf` | Required 4-5 page technical report at the repository root; currently missing |
+| `experiments/validation_windows/` | Windows development results, validation helpers, and recorded provenance |
 | starter files | `caption_source.py`, `load_clients.py`, `run_demo.py`, `analyse_results.py`, `network_profiles/`, … (unmodified) |
 
 ## Ubuntu setup
@@ -100,8 +101,9 @@ Client features:
   newer revisions and the final;
 * **What did I miss?** (shortcut **M**) shows 30 s by default, with 15/30/60 s
   views, computed from local history only;
-* a connection status pill, automatic reconnect with capped exponential
-  backoff capped at 5 seconds before up to 30% jitter is applied, resume from the latest finalized caption, and a toast
+* a connection status pill, automatic reconnect with exponential backoff
+  capped at 5 seconds before up to 30% jitter is applied, resume from the
+  latest finalized caption, and a toast
   saying how many missed captions were recovered;
 * late join loads up to 60 s of recent context, then continues live;
 * *Show revisions* displays segment/revision numbers for the demo;
@@ -165,7 +167,31 @@ Unit and end-to-end tests:
 
 ```bash
 python -m unittest discover -s tests -t .
+python -m unittest tests.overload
+python -m experiments.validation_windows.check_overflow_recovery
+node experiments/validation_windows/check_browser.cjs
 ```
+
+The recorded validation passed 48 discovered Python tests, the separate
+overflow test, and the overflow/reconnect integration test (50 Python tests
+in total), plus browser logic and syntax checks. `tests/overload.py` and the
+validation integration check are not included in default test discovery.
+Node.js is needed only for the optional browser logic check above, not for
+server startup or Python tests. Browser logic checks do not replace a visual demo.
+
+See the [validation report](experiments/validation_windows/VALIDATION.md),
+[measured summary](experiments/validation_windows/SUMMARY.md), and
+[environment provenance](experiments/validation_windows/provenance/PROVENANCE.json).
+These Windows results were recorded at `3a12ef7`; T1-T4 and the FIFO T3
+comparison each have three runs. The 300-client and proxy-bandwidth probes
+have one run each. They do not reproduce Ubuntu T5 or establish hidden-test scores.
+Historical Ubuntu result artifacts under `experiments/data/` are not present
+in this checkout and must be restored or reproduced before submission.
+
+Submission documentation is still incomplete: `AI_USAGE.md`,
+`CONTRIBUTIONS.md`, and root-level `report.pdf` are missing, two team member
+entries need confirmation, and the mandatory video/demo remains unverified.
+See the [documentation checklist](docs/DOCUMENTATION_CHECKLIST.md).
 
 ## Mandatory deterministic application demo
 
@@ -218,9 +244,10 @@ Full details are in [`docs/DESIGN.md`](docs/DESIGN.md) and the protocol is in
   timing; this is approximate and can be biased by delayed history delivery.
 * **Keepalive:** the server configures a 20-second ping interval and 30-second
   timeout; these do not imply an exact disconnect deadline.
-* **Trade-offs:** congested clients lose some provisional updates (by design),
-  and a slow reader is only detected once its client library's receive buffer
-  fills (16 frames by default in Python `websockets`). See the report.
+* **Trade-offs:** congested clients lose some provisional updates (by design).
+  Slow-reader detection may be delayed until the client library's receive
+  buffer fills (16 frames by default in Python `websockets`). See the
+  validation report for measured tail latency and remaining evidence gaps.
 
 ## Optional ASR bonus
 

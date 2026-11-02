@@ -5,6 +5,10 @@ deterministic `caption_source.py`. There are no mock-ups.
 
 ## Setup (before recording)
 
+This is a rehearsal plan, not evidence that the visual demo has passed. The
+completed automated checks and outstanding evidence are recorded in the
+[documentation checklist](DOCUMENTATION_CHECKLIST.md).
+
 Use three separate terminals from the repository root, with `.venv` active in
 each. Run the WebSocket server in Terminal 1, the HTTP server in Terminal 2,
 and start the caption source in Terminal 3 at 0:30 in the recording sequence.
@@ -38,6 +42,12 @@ Generate the summary before recording:
 ```bash
 python experiments/summarise.py experiments/data --output experiments/data/SUMMARY.md
 ```
+
+The Ubuntu `experiments/data/` artifacts are absent from this checkout. Restore
+the results from `bfa2c46` or reproduce them and record the newer tested commit
+before presenting this summary. The Windows summary under
+`experiments/validation_windows/` is separate development evidence and must be
+labeled accordingly; it cannot stand in for Ubuntu T5 measurements.
 
 ## Checklist for the live viva slot
 
