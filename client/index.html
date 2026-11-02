@@ -3,28 +3,79 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>LiveRecall Student Client</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
-    #status { font-weight: 700; }
-    #live { min-height: 6rem; border: 1px solid #bbb; border-radius: .4rem; padding: 1rem; margin: 1rem 0; }
-    .naive-line { padding: .25rem 0; border-bottom: 1px dotted #ddd; }
-    button { padding: .55rem .75rem; margin: .2rem; }
-    #recall { white-space: pre-wrap; margin-top: 1rem; border-left: 3px solid #ccc; padding-left: 1rem; }
-    .hint { font-size: .9rem; color: #555; }
-  </style>
+  <title>LiveRecall</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <h1>LiveRecall</h1>
-  <p>Connection: <span id="status">disconnected</span></p>
-  <p class="hint">Starter behavior is intentionally naive: every received revision is appended as a new line.</p>
-  <div id="live"></div>
-  <div>
-    <button data-seconds="30">What did I miss? (30 s)</button>
-    <button data-seconds="15">15 s</button>
-    <button data-seconds="60">60 s</button>
-  </div>
-  <div id="recall">TODO: implement the locally maintained recall view.</div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div>
+        <h1>LiveRecall</h1>
+        <p class="session" id="session-label">Lecture L1</p>
+      </div>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite">
+      <span class="dot"></span><span id="status-text">Starting…</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="live" aria-label="Live captions">
+      <div class="live-head">
+        <h2>Live captions</h2>
+        <label class="toggle">
+          <input type="checkbox" id="show-details"> Show revisions
+        </label>
+      </div>
+      <ol class="transcript" id="transcript" aria-live="off"></ol>
+      <button class="jump" id="jump-live" hidden>Jump to live ↓</button>
+      <div class="legend">
+        <span><span class="swatch swatch-provisional"></span>Provisional (may still change)</span>
+        <span><span class="swatch swatch-final"></span>Final</span>
+      </div>
+    </section>
+
+    <aside class="side">
+      <button class="primary" id="recall-open" aria-controls="recall-panel">
+        What did I miss?
+      </button>
+      <p class="hint">Shortcut: press <kbd>M</kbd></p>
+
+      <section class="recall" id="recall-panel" hidden aria-label="What did I miss">
+        <div class="recall-head">
+          <h2 id="recall-title">Previous 30 seconds</h2>
+          <button class="icon" id="recall-close" aria-label="Close">×</button>
+        </div>
+        <div class="segmented" role="group" aria-label="Recall window">
+          <button data-window="15">15 s</button>
+          <button data-window="30" class="active">30 s</button>
+          <button data-window="60">60 s</button>
+        </div>
+        <ol class="recall-list" id="recall-list"></ol>
+        <p class="recall-summary" id="recall-summary"></p>
+      </section>
+
+      <section class="info" aria-label="Connection details">
+        <h2>Connection</h2>
+        <dl>
+          <dt>Server</dt><dd id="info-server">–</dd>
+          <dt>Last update</dt><dd id="info-last">–</dd>
+          <dt>Caption age</dt><dd id="info-age">–</dd>
+          <dt>Final captions held</dt><dd id="info-finals">0</dd>
+          <dt>Resume cursor</dt><dd id="info-cursor">0 / 0</dd>
+          <dt>Reconnects</dt><dd id="info-reconnects">0</dd>
+        </dl>
+        <button class="secondary" id="simulate-outage">Simulate 5 s disconnect</button>
+      </section>
+    </aside>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="js/caption_store.js"></script>
+  <script src="js/recall.js"></script>
+  <script src="js/connection.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
