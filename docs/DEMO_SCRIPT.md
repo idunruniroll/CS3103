@@ -39,6 +39,12 @@ Tick **Show revisions** in Window A.
 
 Generate the summary before recording:
 
+The live-delivery policy changed at `51b0be7`. Existing benchmark summaries
+predate that change; rerun the experiments and cite the new tested commit if
+presenting results as measurements of the current code. Historical Ubuntu
+commit attribution differs across documents; see
+[current validation](CURRENT_VALIDATION.md) before citing an older result.
+
 ```bash
 python experiments/summarise.py experiments/data --output experiments/data/SUMMARY.md
 ```

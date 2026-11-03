@@ -4,6 +4,27 @@ Use these tests to diagnose your design. They do not reveal the hidden final wor
 
 `run_demo.py --runs 3` restarts the server for each run. The older `--repeat` spelling is accepted as an alias, but `--runs` is clearer.
 
+Activate the environment with `source .venv/bin/activate`. The runner starts
+its own server, source and clients; leave port 8765 free. Results are printed
+and saved as CSV/JSON. For all T1-T4 scenarios and a summary, run:
+
+```bash
+bash experiments/run_public_tests.sh
+```
+
+Correctness checks for the current live-delivery contract are separate from
+performance measurements:
+
+```bash
+python -m unittest discover -s tests -t . -v
+python -m unittest tests.test_overload_requirements -v
+```
+
+The overload tests check individual live `CAPTION_UPDATE` frames, sustained
+final delivery under controlled bandwidth, latest provisional delivery, and
+60-second recovery over a simulated one-hour lecture. They use an artificial
+transport and clock; they do not replace real TCP/network benchmarks.
+
 ## T1 - Basic correctness
 
 ```bash

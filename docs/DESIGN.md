@@ -51,6 +51,11 @@ retained revisions per pending segment. FIFO is intentionally unbounded.
 The server retains finalized captions for up to 90 seconds and 4,096 entries,
 whichever limit is reached first. Recovery requests are limited to 60 seconds.
 
+The 4,096-entry cap must be sized for the supported final-caption rate: it
+cannot preserve a complete 60-second window if more than 4,096 finals arrive
+within that window. The fixed bound is not a guarantee for arbitrary source
+rates. Disconnections beyond retained history cannot recover older captions.
+
 ## 3. Why the naive design fails
 
 `await ws.send()` only blocks once the **receiver library's** queue (Python
@@ -94,12 +99,13 @@ congestion-detection trigger, not a hard limit on transport buffering.
 * **DRAIN:** send nothing until the outstanding ping is answered or the
   10-second drain timeout expires. A pong indicates transport progress; the
   application may still have captions waiting to be displayed.
-* **PACE:** at most one frame per `interval` (0.5 s base, doubled on renewed
+* **PACE:** provisional-only traffic waits for `interval` (0.5 s base, doubled on renewed
   lag up to 4 s, shrunk ×0.9 on clean pongs). Frame choice in
   `ClientChannel._next_frame`:
-  1. all pending finals (one `HISTORY` frame if more than one);
-  2. otherwise the newest provisional of the active segment, but only after
-     it has waited `provisional_hold` = 1 s. Most provisionals are superseded
+  1. one pending final as a `CAPTION_UPDATE`, bypassing the pacing interval
+     after drain mode ends; repeat for remaining finals;
+  2. otherwise the newest provisional of a pending segment, but only after
+     the oldest pending caption has waited `provisional_hold` = 1 s. Most provisionals are superseded
      within a second, so a congested client is not spent on them, but a
      long sentence still updates.
   The queue is `collapse()`d first, so superseded provisionals are dropped.
@@ -110,10 +116,13 @@ congestion-detection trigger, not a hard limit on transport buffering.
   failed probe refills its 16-frame receive buffer. A failed probe doubles
   `backoff` (up to ×8) and a successful one resets it.
 
-Normal delivery aims to preserve revisions, but coalescing and batching may
+Normal delivery aims to preserve revisions, but coalescing and final priority may
 suppress intermediate provisional revisions. More than 16 revisions per pending
-segment causes coalescing; four pending finals can trigger batching in NORMAL
-mode that supersedes their pending provisionals.
+segment causes coalescing; four pending finals trigger final priority in NORMAL
+mode, superseding the provisionals of each final selected. Every live caption
+uses an individual `CAPTION_UPDATE`; `HISTORY` is reserved for connection recovery
+after `CLIENT_HELLO`. The legacy `batch_*` names configure priority thresholds,
+and the legacy live `batches` statistic remains zero.
 
 ## 6. Bounded state summary
 
@@ -167,7 +176,7 @@ refer to commit `bfa2c46` unless reproduced on a newer commit.
 | What happens on reconnect after 10 s offline? | `hub.handle_client` → `CaptionState.history_since(cursor, 60)` (§3, PROTOCOL §3) |
 | Where is per-client buffering, and how is it bounded? | `SemanticQueue` (16 × 256), `ClientChannel.offer` |
 | Why does P95/P99 rise under loss even though TCP is reliable? | Retransmission timeout (≥ 200 ms) plus head-of-line blocking: later frames wait behind the lost segment |
-| What happens when a client reads slower than captions are produced? | §3 to §5: lag detected, drain, paced batches |
-| Which provisionals can safely be dropped? | Any provisional superseded by a newer revision or the final of its segment (`collapse`, `pop_finals`) |
-| What if bandwidth is halved? | Pong delay rises, clients go congested, each gets ≤ 2 frames/s of finals-first state, and the interval doubles if that is still too much |
+| What happens when a client reads slower than captions are produced? | §3 to §5: lag detected, drain, paced provisionals and individual priority finals |
+| Which provisionals can safely be dropped? | Any provisional superseded by a newer revision or the final of its segment (`collapse`, `pop_final`) |
+| What if bandwidth is halved? | Ping age or backlog may trigger congestion; provisional traffic is coalesced and paced, while finals bypass pacing after draining. Completeness still depends on sufficient final-stream capacity and retained recovery state. |
 | Show the overload policy | `flow_control.py` (`update`, `send_delay`, `probe_wait`), `client_channel.py` (`_pump`, `_hold_time`, `_next_frame`) |

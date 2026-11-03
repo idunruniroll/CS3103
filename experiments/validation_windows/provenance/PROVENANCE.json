@@ -1,0 +1,9 @@
+{
+  "platform": "Windows-10-10.0.26200-SP0",
+  "python": "3.10.10 (tags/v3.10.10:aad5f6a, Feb  7 2023, 17:20:36) [MSC v.1929 64 bit (AMD64)]",
+  "websockets": "16.1.1",
+  "commit": "3a12ef7efc00e72395330e53cdfd51a4bf8ad9cf",
+  "environment_overrides": {},
+  "reference_ubuntu_results_commit": "bfa2c46",
+  "note": "Windows validation, not a reproduction of Ubuntu tc/netem results. Untracked validation tests added during this run."
+}

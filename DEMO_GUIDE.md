@@ -32,4 +32,7 @@ python caption_source.py --duration 120
 - one client temporarily disconnects, reconnects automatically, and recovers recent missed finalized captions without duplicate finals;
 - a newly opened late client receives recent context and then continues with live updates.
 
-The supplied browser is deliberately naive. It appends every revision so that the first revision-handling problem is visible immediately. Replace that behavior as part of your solution.
+The original starter browser was deliberately naive. The current client replaces
+revisions in place. Use [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the current
+recording sequence and [README.md](README.md) for verified behavior and remaining
+submission requirements.

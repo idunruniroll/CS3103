@@ -167,12 +167,22 @@ Unit and end-to-end tests:
 
 ```bash
 python -m unittest discover -s tests -t .
+python -m unittest tests.test_overload_requirements -v
 python -m unittest tests.overload
 python -m experiments.validation_windows.check_overflow_recovery
 node experiments/validation_windows/check_browser.cjs
 ```
 
-The recorded validation passed 48 discovered Python tests, the separate
+The current discovered suite contains 51 tests, including three overload
+contract tests for individual live frames, controlled bandwidth, and simulated
+long-lecture recovery. All 51 passed on Windows after the delivery change at
+`51b0be7`; the strengthened congested-bandwidth scenario also passed separately.
+These correctness checks are not new Ubuntu performance measurements.
+The explicit overflow and overflow/reconnect tests also passed on 2026-11-04,
+giving 53 tests across the three test commands. See
+[current validation](docs/CURRENT_VALIDATION.md) for scope and evidence limits.
+
+The older recorded validation passed 48 discovered Python tests, the separate
 overflow test, and the overflow/reconnect integration test (50 Python tests
 in total), plus browser logic and syntax checks. `tests/overload.py` and the
 validation integration check are not included in default test discovery.
@@ -233,11 +243,13 @@ Full details are in [`docs/DESIGN.md`](docs/DESIGN.md) and the protocol is in
   minimum RTT, alongside transport backlog, to detect possible congestion.
   The 64 KiB threshold is a congestion-detection trigger, not a hard limit on
   transport buffering. Congested delivery drains until a pong or the 10-second
-  drain timeout, then paces finals-first frames. On semantic queue overflow,
+  drain timeout, then paces provisional-only traffic. Finals bypass pacing
+  after draining and use individual `CAPTION_UPDATE` frames. `HISTORY` is sent
+  only after `CLIENT_HELLO`, never as a live batch. On semantic queue overflow,
   the server initiates a resynchronization close (1013). Reconnecting clients
   request retained finals through `HISTORY`.
 * **Revision guarantees:** normal delivery aims to preserve revisions, but
-  coalescing and batching may suppress intermediate provisional revisions.
+  coalescing and final priority may suppress intermediate provisional revisions.
 * **Malformed messages:** invalid initial handshakes are rejected with 1008.
   Malformed caption updates after a valid source handshake are discarded.
 * **Clock skew:** the browser estimates clock offset from observed message
