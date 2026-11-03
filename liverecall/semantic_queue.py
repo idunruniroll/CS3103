@@ -131,6 +131,16 @@ class SemanticQueue:
         finals.sort(key=lambda c: c.segment)
         return finals
 
+    def pop_final(self) -> Caption:
+        """Take one final, removing its superseded provisional revisions."""
+        seg = min(seg for seg, revs in self._pending.items() if revs[-1].final)
+        revs = self._pending.pop(seg)
+        del self._since[seg]
+        self._size -= len(revs)
+        self._finals_pending -= 1
+        self.coalesced += len(revs) - 1
+        return revs[-1]
+
     def oldest_wait(self, now: float) -> float:
         """How long the longest-waiting pending caption has waited."""
         if not self._since:

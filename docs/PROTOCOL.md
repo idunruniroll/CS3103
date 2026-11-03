@@ -71,32 +71,38 @@ The browser estimates clock offset from observed message timing; this is
 approximate and can be biased by delayed history delivery. Exponential backoff
 is capped at 5 seconds before up to 30% jitter is applied.
 
-## 4. Extension: catch-up batches
+## 4. Live delivery
 
-When a client is congested (§5), or when ≥ 4 finals are pending for it, the
-server sends all of its pending finals together as **one `HISTORY` frame**
-mid-stream, instead of one frame per final. Its meaning is unchanged: finalized
-captions, oldest first, none the client already received. The receiver pays
-the per-frame cost once. Both the supplied load client and our browser accept
-`HISTORY` at any time. Our browser treats a mid-stream `HISTORY` as live
-captions, not as "recovered".
+`HISTORY` is sent only in response to the initial `CLIENT_HELLO` on each
+connection, including reconnects and late joins. Every live revision, including
+every final, uses its own `CAPTION_UPDATE` frame. There are no unsolicited
+mid-stream `HISTORY` batches.
+
+When congested, or when at least four finals are pending, the writer selects
+one pending final at a time in segment order and removes its superseded
+provisionals. The legacy configuration names `batch_normal`,
+`batch_congested`, and `batch_threshold` remain in the code; the threshold
+now selects final priority rather than wire batching. The legacy `batches`
+statistics field stays zero for live delivery.
 
 ## 5. Delivery under overload
 
 * Each client has its own queue and writer. The source never waits for a client.
 * Adaptive and coalesce policies bound pending segments to 256, with up to
   16 retained revisions per pending segment. FIFO is intentionally unbounded.
-* Normal delivery aims to preserve revisions, but coalescing and batching may
+* Normal delivery aims to preserve revisions, but coalescing and final priority may
   suppress intermediate provisional revisions.
 * Adaptive uses outstanding ping age relative to recent minimum RTT, alongside
   transport backlog, to detect possible congestion. Ping age above baseline RTT
   + 0.3 seconds or transport backlog above 64 KiB triggers congestion.
   The 64 KiB threshold is a congestion-detection trigger, not a hard limit on
   transport buffering.
-* An adaptive client in congested mode receives at most one frame per 0.5 seconds
-  or more, with pending finals first (batched if more than one). Otherwise it
-  receives a retained provisional after it has waited 1 second. Superseded
-  provisional revisions are coalesced away.
+* During drain mode, the writer waits for a pong or the 10-second drain timeout.
+  After draining, pending finals bypass the pacing interval and are sent as
+  individual `CAPTION_UPDATE` frames, subject to transport backpressure.
+  Provisional-only traffic is paced at a base interval of 0.5 seconds, backing
+  off to at most 4 seconds, and waits until the oldest pending caption has
+  waited 1 second. Superseded provisional revisions are coalesced away.
 * On semantic queue overflow, the server initiates a resynchronization close
   (1013). Reconnecting clients request retained finals through `HISTORY`.
 * The server configures a 20-second ping interval and 30-second timeout; these
@@ -128,7 +134,8 @@ S→C CAPTION_UPDATE(seg=46,rev=3,final=true)  # live continues
 A congested client during a burst:
 
 ```text
-S→C HISTORY(items=[51/3, 52/3])              # two finals, one frame
+S→C CAPTION_UPDATE(seg=51,rev=3,final=true)  # individual live finals
+S→C CAPTION_UPDATE(seg=52,rev=3,final=true)
 S→C CAPTION_UPDATE(seg=53,rev=3,final=true)
 S→C CAPTION_UPDATE(seg=54,rev=2,final=false) # only after waiting 1 s; rev 1 coalesced away
 ```

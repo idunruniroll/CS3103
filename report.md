@@ -20,7 +20,7 @@ caption_source.py  →  hub.handle_source  →  CaptionState.apply
 
 `solution_server.py` runs one Python `asyncio` server using the `liverecall/` package. The source handler parses and validates each `CAPTION_UPDATE`, updates session state, and offers the accepted caption to per-client channels without awaiting client sends. Each client has an independent queue and writer, isolating slow readers from the source and other clients. The `fifo` baseline retains all pending revisions; `coalesce` compacts pending revisions without proactive lag detection; `adaptive` combines semantic queues with measured congestion feedback.
 
-The WebSocket protocol uses source `SOURCE_HELLO` and `CAPTION_UPDATE` messages, and browser `CLIENT_HELLO` with an optional final-caption cursor (`last_segment`, `last_revision`) and `history_seconds` (at most 60). The server returns `HISTORY` in oldest-first order before live delivery. An implementation extension may batch pending finalized captions into a mid-stream `HISTORY` frame for a congested client, reducing message overhead without changing final-caption semantics. See `docs/PROTOCOL.md` for the field-level contract.
+The WebSocket protocol uses source `SOURCE_HELLO` and `CAPTION_UPDATE` messages, and browser `CLIENT_HELLO` with an optional final-caption cursor (`last_segment`, `last_revision`) and `history_seconds` (at most 60). The server returns retained finals in segment order in a `HISTORY` response to `CLIENT_HELLO`, then uses individual `CAPTION_UPDATE` frames for all live delivery. Unsolicited mid-stream `HISTORY` is not used. See `docs/PROTOCOL.md` for the field-level contract.
 
 The browser maintains revision-aware caption state and a bounded local history, displays the current live caption, supports 15/30/60-second recall without a fresh server request, and automatically reconnects with a resume cursor after network interruption. The local history window is 90 seconds, providing slack around the maximum 60-second recall request.
 
@@ -38,11 +38,21 @@ The browser maintains revision-aware caption state and a bounded local history, 
 
 **Adaptive lag measurement.** The sender uses WebSocket ping/pong progress as a signal of whether a peer has processed preceding transport data. Lag is identified when an outstanding ping exceeds the recent minimum RTT baseline by 0.3 seconds, or when the transport's pending write buffer exceeds 64 KiB. A delayed network alone should not automatically be classified as a slow reader because the baseline incorporates observed RTT.
 
-**Control states.** In normal operation, the writer sends revisions with minimal pacing. Once congested, it collapses superseded provisional revisions; while draining, it avoids adding more traffic behind a lagging client. It then paces delivery, preferentially batches eligible finals, and may send only the newest useful provisional state. The initial paced interval is 0.5 seconds; repeated congestion increases the interval, up to 4 seconds. Probing eventually returns a recovered client to unpaced delivery; repeated lag invokes backoff rather than sustained reflooding.
+**Control states.** In normal operation, the writer sends revisions without artificial pacing, subject to queue limits and final priority when at least four finals are pending. Once congested, it collapses superseded provisional revisions; while draining, it avoids adding more traffic behind a lagging client until a pong or the 10-second drain timeout. After draining, finals bypass pacing and are sent individually as `CAPTION_UPDATE`. Provisional-only traffic waits for the pacing interval and the oldest pending caption's one-second hold. The initial paced interval is 0.5 seconds; repeated congestion increases it up to 4 seconds. Probing eventually returns a recovered client to unpaced delivery; repeated lag invokes backoff rather than sustained reflooding.
 
-**Bounded overload fallback.** A semantic queue that exceeds its distinct-segment capacity requests resynchronization. The client writer sends WebSocket close code **1013**, reason `resync: reconnect to recover`; reconnecting clients can request retained finals through `HISTORY`. This is a graceful *bounded-memory* fallback, not a guarantee that captions older than the retention window remain recoverable. The new deterministic R11 component test exercised overflow and verified the requested 1013 close; the full real-WebSocket overload-to-reconnect sequence has not been tested as a single integrated scenario.
+**Bounded overload fallback.** A semantic queue exceeding its distinct-segment capacity requests resynchronization. The writer closes with code **1013**, reason `resync: reconnect to recover`. Reconnecting clients request retained finals through `HISTORY`; captions older than the retained window are not guaranteed. Both the explicit R11 component test and the real-WebSocket overflow/reconnect integration test passed in the current Windows validation.
 
 # 5. Experimental evaluation
+
+The performance tables in this section are historical and predate the live
+delivery fix at `51b0be7`. They have not been rerun with individual live finals
+and revised pacing. Their Ubuntu commit attribution (`7385d6d` below) differs
+from the `bfa2c46` attribution in README and Windows provenance; original
+Ubuntu artifacts are absent here, so that discrepancy remains unresolved.
+See [current validation](docs/CURRENT_VALIDATION.md) for the 2026-11-04 Windows
+checks: 51 discovered tests plus the explicit overflow and real-WebSocket
+overflow/reconnect tests all passed. This supersedes the earlier R11-only
+evidence limitation described below.
 
 ## 5.1 Methodology and environment
 
@@ -97,7 +107,7 @@ The combined delay-and-loss profile was the most damaging: freshness fell to 80.
 
 # 7. Limitations and future work
 
-The server uses one process and event loop; very large deployments would require horizontal scaling and cross-worker session state. Receiver lag is inferred from transport progress rather than explicit browser-render acknowledgements, so detection may lag behind large receiver buffers. Adaptive backpressure acts independently per client and does not provide a global fair-share scheduler for shared bottlenecks. Even after detection, initial buffered frames may remain stale; T3 slow-client P95 of about 7.5 seconds demonstrates that limitation. R11's overflow-close behavior was verified with a controlled fake WebSocket, while a real overload-triggered `1013 → reconnect → HISTORY` integration trace remains future validation work.
+The server uses one process and event loop; very large deployments would require horizontal scaling and cross-worker session state. Receiver lag is inferred from transport progress rather than explicit browser-render acknowledgements, so detection may lag behind large receiver buffers. Adaptive backpressure acts independently per client and does not provide a global fair-share scheduler for shared bottlenecks. Even after detection, initial buffered frames may remain stale; T3 slow-client P95 of about 7.5 seconds demonstrates that limitation. The current Windows validation covers both the R11 overflow close and a real-WebSocket overflow/reconnect/recovery sequence. Performance and recovery after network impairment still require fresh Ubuntu validation.
 
 Future extensions include receiver acknowledgements for more accurate rendered-caption lag, compression or delta encoding of provisional revisions, session sharding across worker processes, coordinated bandwidth allocation for congested cohorts, and integration with a speech-recognition source. A future-project direction is per-student recall summaries, while keeping the present caption transport and consistency guarantees independently testable.
 
