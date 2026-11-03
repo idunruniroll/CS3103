@@ -16,8 +16,8 @@ Confirm the remaining names and student IDs before submission.
 
 | Name | Student ID | Responsibility |
 |---|---|---|
-| To be confirmed | To be confirmed | Protocol, caption state and bounded history, server entry point |
-| To be confirmed | To be confirmed | Per-client queues, semantic coalescing, flow control / backpressure |
+| Ow Jun Duan | A0308148A | Protocol, caption state and bounded history, server entry point |
+| Ng Yu Hao Benedict | A0299879N | Per-client queues, semantic coalescing, flow control / backpressure |
 | Max Khoo Zheng Ning | A0307430R | Browser client: revision display, recall, reconnect/resume |
 | Tan Yi Qian | A0301651U | Experiments (T1–T5, before/after), documentation, report |
 
