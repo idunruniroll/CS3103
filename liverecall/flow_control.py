@@ -29,8 +29,9 @@ NORMAL     every revision is sent as soon as the writer is free, so clients
 CONGESTED  entered when lag is detected.
            1. DRAIN: send nothing until the outstanding ping is answered,
               i.e. until the client has worked through its backlog.
-           2. PACE: at most one frame per ``interval``. Finals go first (all
-              pending finals batched into one frame); the newest provisional
+           2. PACE: at most one provisional frame per ``interval``. Finals go
+              first as individual CAPTION_UPDATE frames without pacing;
+              the newest provisional
               revision is sent only if it has waited ``provisional_hold``
               seconds, so a congested client is not spent on revisions that
               are about to be replaced, yet a long segment still updates.

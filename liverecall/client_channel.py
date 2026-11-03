@@ -8,7 +8,7 @@ can only delay itself.
 Policies (``--policy``):
     adaptive  SemanticQueue + FlowController (default, the graded design):
               full revisions while the client keeps up, coalescing + paced
-              batches once lag is detected
+              provisional updates once lag is detected
     coalesce  SemanticQueue always collapsed, no lag detection: coalescing
               happens only when revisions pile up behind a blocked send()
     fifo      FifoQueue, no coalescing, no flow control (naive baseline)
@@ -23,7 +23,7 @@ from typing import Any, Iterable
 from websockets.exceptions import ConnectionClosed
 
 from .flow_control import FlowConfig, FlowController
-from .protocol import Caption, encode_history
+from .protocol import Caption
 from .semantic_queue import DROPPED, OVERFLOW, FifoQueue, SemanticQueue
 
 log = logging.getLogger("liverecall.channel")
@@ -103,6 +103,10 @@ class ClientChannel:
                 # is selected): drop superseded revisions before choosing.
                 self.queue.collapse()
             delay = flow.send_delay(now)
+            # Pacing limits provisional traffic, not the final-caption rate.
+            # Still respect drain mode so existing transport backlog can clear.
+            if self.queue.finals_pending and not flow.draining:
+                delay = 0.0
             if delay <= 0:
                 delay = self._hold_time(now)
             if delay > 0:
@@ -139,14 +143,9 @@ class ClientChannel:
         finals_pending = self.queue.finals_pending
         if finals_pending and (self.flow.congested
                                or finals_pending >= self.flow.batch_threshold):
-            finals = self.queue.pop_finals()
-            self.mark_delivered(finals)
-            if len(finals) == 1:
-                return finals[0].wire, 1, 0
-            # Several finals are waiting: deliver them all in one HISTORY
-            # frame. The receiver pays per-frame cost once, not per caption.
-            return encode_history(finals), len(finals), 1
-        caption = self.queue.pop()
+            caption = self.queue.pop_final()
+        else:
+            caption = self.queue.pop()
         self.queue.mark_delivered(caption)
         return caption.wire, 1, 0
 
