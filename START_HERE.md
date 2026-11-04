@@ -2,7 +2,7 @@
 
 This checkout contains the implemented server and browser, public test tools,
 and development validation. Use [README.md](README.md) for configuration and
-the [documentation checklist](docs/DOCUMENTATION_CHECKLIST.md) for remaining
+the [documentation checklist](docs/CURRENT_VALIDATION.md) for remaining
 submission deliverables and evidence gaps.
 
 ## Implemented features
