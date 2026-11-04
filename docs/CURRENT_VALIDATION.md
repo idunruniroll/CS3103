@@ -31,8 +31,3 @@ were made during this documentation audit. Older benchmark tables predate the
 individual-final delivery change and must be rerun before being attributed to
 the current implementation.
 
-Historical Ubuntu attribution is inconsistent: `report.md` names `7385d6d`,
-whereas README and the Windows provenance record name `bfa2c46`. The Ubuntu
-CSV/JSON artifacts are absent here, so the measured commit cannot be resolved
-from those artifacts in this checkout. Record the exact commit and environment
-on the next benchmark run.
