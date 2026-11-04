@@ -2,7 +2,6 @@
 
 ## Tools used
 
-List the generative-AI/coding tools used by the team and what each was used for.
 ChatGPT was used as a development and documentation assistant to:
 - Interpret the assignment requirements and review the architecture, WebSocket protocol, caption revision rules, recovery semantics, and backpressure design
 - Explain Ubuntu test errors
