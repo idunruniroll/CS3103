@@ -13,7 +13,7 @@ ChatGPT was used as a development and documentation assistant to:
 
 ChatGPT recommended evaluating semantic backpressure using both latency and correctness, and separating overall latency from normal-client and slow-client latency, instead of reporting only an aggregate P95. This helped us interpret and present the controlled comparison of FIFO, provisional-revision coalescing, and adaptive delivery under the same 100-client workload with 10 slow readers.
 
-The result was verified using 3 independent Ubuntu runs per policy and the public analysis scripts. Adaptive delivery achieved an overall P95 caption age of 31.19 ms, compared with 2,252.87 ms for coalescing, while increasing final-caption completeness from 95.13% to 100.00%. The comparison also exposed a trade-off where normal-client P95 rose from 16.27 ms (coalescing) to 26.16 ms (adaptive). Considering these measures together gave a more accurate account of the optimisation than the aggregate P95 alone.
+The latest comparison was verified using three independent Ubuntu runs per policy and the public analysis scripts. Adaptive delivery achieved an overall P95 caption age of 27.0 ms, compared with 2,254.2 ms for coalescing, while increasing final-caption completeness from 95.13% to 100.00%. The comparison also revealed a trade-off: normal-client P95 increased from 18.2 ms under coalescing to 24.0 ms under adaptive delivery. These findings demonstrate why latency, completeness and slow-client isolation must be evaluated together.
 
 ## One suggestion that was wrong, inefficient, or required modification
 
