@@ -13,16 +13,9 @@ There are 54 Python tests across these three commands. The two explicit tests
 are not included in default discovery. On Windows these commands used the
 existing `.venv\Scripts\python.exe`; on Ubuntu activate `.venv` first.
 
-The repeated-source regression runs the supplied `check_liverecall_repeat.py`
-against a real in-process WebSocket server. With one connected client, two
-sequential source runs produce final IDs `[1, 2, 3]` and `[4, 5, 6]`. It also
-checks that reconnecting with cursor 3 returns history IDs `[4, 5, 6]`.
-The server retains a single high-water integer per session and offsets a source
-connection when its first valid caption starts at segment 1. This covers sequential
-source runs; simultaneous independent sources are not covered by this check.
+The repeated-source regression (`check_liverecall_repeat.py`) connects to a separately running WebSocket server and maintains one continuous client connection while two sequential caption-source connections transmit updates. The test verifies that segment IDs remain unique and consecutive across both source rounds.
 
-To check a separately running server after restarting it to load the fix:
-`python check_liverecall_repeat.py --uri ws://127.0.0.1:8765 --session L1`.
+The test does not exercise client disconnection or HISTORY-based recovery. Reconnect behavior is validated separately by `experiments.validation_windows.check_overflow_recovery`, which checks recovery after an overflow-induced disconnect. This separate test does not specifically verify reconnect recovery across sequential caption-source runs.
 
 The three tests in `tests/test_overload_requirements.py` establish:
 
