@@ -30,8 +30,7 @@ The three tests in `tests/test_overload_requirements.py` establish:
 
 These are representative correctness checks. The bandwidth transport has no
 kernel or WebSocket buffering, and the retention simulation is not an RSS
-measurement. No new Ubuntu public-load or tc/netem performance measurements
-were made during this documentation audit. Older benchmark tables predate the
+measurement. Subsequent clean Ubuntu T1–T5 experiments are provided in experiments/verify_data.zip. All 27 individual runs reported 100% final-caption completeness with no duplicates, stale messages or connection errors. The exact tested Git revision was not embedded in the experiment records, so these results are not independently attributable to a specific commit. Older benchmark tables predate the
 individual-final delivery change and must be rerun before being attributed to
 the current implementation.
 
