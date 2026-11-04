@@ -10,17 +10,24 @@ ChatGPT was used as a development and documentation assistant to:
 
 ## One useful suggestion
 
-ChatGPT recommended evaluating semantic backpressure using both latency and correctness, and separating overall latency from normal-client and slow-client latency, instead of reporting only an aggregate P95. This helped us interpret and present the controlled comparison of FIFO, provisional-revision coalescing, and adaptive delivery under the same 100-client workload with 10 slow readers.
+ChatGPT recommended treating final-caption completeness and update coverage as separate measures and investigating any completeness value above 100% rather than accepting the aggregate summary at face value. An initial set of experiment outputs reported impossible completeness values, including 200% for T1 and approximately 147% for T3. We consequently isolated the public tests in a fresh results directory, examined the counts, and repeated the workloads three times per scenario.
 
-The latest comparison was verified using three independent Ubuntu runs per policy and the public analysis scripts. Adaptive delivery achieved an overall P95 caption age of 27.0 ms, compared with 2,254.2 ms for coalescing, while increasing final-caption completeness from 95.13% to 100.00%. The comparison also revealed a trade-off: normal-client P95 increased from 18.2 ms under coalescing to 24.0 ms under adaptive delivery. These findings demonstrate why latency, completeness and slow-client isolation must be evaluated together.
+In the resulting clean T1–T5 summary, the reported three-run median final-caption completeness was 100% across all nine workload scenarios, with zero reported duplicate and stale messages. For example, T2 achieved a P95 caption age of 26.7ms, and T3 achieved 26.9ms overall P95 while retaining 94.39% live-revision coverage. Under combined delay and loss, P95 was 587.6 ms, fresh-final delivery was 93.33%, and live-revision coverage was 56.95%, despite 100% median final completeness.
+
+This distinction helped us explain why receiving all final captions does not necessarily mean that every intermediate revision arrives or that captions remain fresh under impairment. The clean results establish the reported medians; they do not, by themselves, identify the cause of the earlier invalid measurements or prove hidden-test performance
 
 ## One suggestion that was wrong, inefficient, or required modification
 
-An early AI-assisted reproducibility draft placed the manual server-start command, python solution_server.py --port 8765, alongside commands for the automated public experiments without clearly distinguishing the two workflows. This was misleading as run_demo.py and the experiment scripts start their own server. Leaving a manually launched instance on port 8765 can prevent the test server from starting. During testing, a port conflict produced OSError: [Errno 98] address already in use, followed by a caption-source connection error.
+An earlier AI-assisted testing and documentation suggestion placed the command python solution_server.py --port 8765 alongside the automated public experiment commands without clearly distinguishing the workflows. This was misleading because run_demo.py starts and stops its own server instance. Manually leaving a server bound to port 8765 can cause an OSError: [Errno 98] address already in use and prevent an automated run from starting correctly.
 
-We corrected the documentation to separate (1) manual startup for the browser demonstration from (2) automated testing, which must execute without a separate server instance. The corrected procedure also uses ss -ltnp to check whether the port is occupied before rerunning a test. This illustrates why AI-generated operational instructions must be checked against the test harness's actual process lifecycle.
+We corrected the procedure by separating manual application demonstration (start the server, browser client, and deterministic source in separate terminals) from automated benchmarks (do not run an additional server; let the experiment harness manage it). We also used isolated result directories when validating anomalous metrics rather than treating an AI-proposed explanation, such as residual history, as a confirmed root cause. This experience demonstrated the need to verify AI-generated operational instructions against the actual source code and test harness.
 
 A separate reporting correction was necessary when new Ubuntu runs superseded previously quoted measurements. We updated the report using the latest three-run summary, rather than retaining the older AI-drafted figures.
+
+## Verification and Responsibility
+The latest clean T1–T5 figures cited above are medians of three runs per scenario, as reported by experiments/summarise.py. They should not be confused with earlier FIFO/coalesce/adaptive comparisons, which are separate historical measurements and may have been collected against a different code revision.
+
+AI did not perform the Ubuntu measurements or independently certify correctness; the team executed the tests, reviewed the outputs, and remains responsible for all submitted code, documentation, results, and claims. Every member is expected to understand and defend the relevant implementation and engineering decisions during the viva.
 
 ## Responsibility statement
 
