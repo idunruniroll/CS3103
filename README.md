@@ -185,6 +185,25 @@ validation integration check are not included in default test discovery.
 Node.js is needed only for the optional browser logic check above, not for
 server startup or Python tests. Browser logic checks do not replace a visual demo.
 
+### Experimental Results and Evidence
+
+The repository includes two experiment archives:
+
+- **`experiments/verify_data.zip` — Latest clean Ubuntu T1–T5 results.** Contains 27 individual runs (three runs per workload), including per-run CSV/JSON records and the summary. All 27 runs achieved 100% final-caption completeness, with zero recorded duplicate or stale messages. These results are used in Section 5 of `report.pdf`.
+
+- **`experiments/data.zip` — Historical experiments and policy comparisons.** Contains 45 individual runs, including earlier T1–T5 measurements and FIFO/coalesce/adaptive comparisons. The historical policy comparisons are discussed in Section 6 of `report.pdf` to illustrate the benefits and trade-offs of adaptive backpressure.
+
+The latest T1–T5 results and historical policy comparisons were collected separately. Because the archives do not contain embedded Git commit identifiers, the historical performance differences are not attributed solely to implementation changes.
+
+To inspect the results:
+
+```bash
+unzip experiments/verify_data.zip -d experiments/verify_results
+unzip experiments/data.zip -d experiments/historical_results
+```
+
+Both archives are retained to support reproducibility and transparent reporting.
+
 ## Mandatory deterministic application demo
 
 ```bash
