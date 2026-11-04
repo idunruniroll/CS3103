@@ -7,6 +7,3 @@
 | Max Khoo Zheng Ning | Browser client: revision display, recall, reconnect/resume | - | 25 |
 | Tan Yi Qian | Experiments (T1–T5, before/after), documentation, report | T1 - T5 | 25 |
 
-Total contribution should be 100%.
-
-Add brief notes on major shared/integration work if useful. Git history is supporting evidence, not a substitute for this statement.
