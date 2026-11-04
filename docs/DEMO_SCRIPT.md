@@ -5,10 +5,6 @@ deterministic `caption_source.py`. There are no mock-ups.
 
 ## Setup (before recording)
 
-This is a rehearsal plan, not evidence that the visual demo has passed. The
-completed automated checks and outstanding evidence are recorded in the
-[documentation checklist](DOCUMENTATION_CHECKLIST.md).
-
 Use three separate terminals from the repository root, with `.venv` active in
 each. Run the WebSocket server in Terminal 1, the HTTP server in Terminal 2,
 and start the caption source in Terminal 3 at 0:30 in the recording sequence.
