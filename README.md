@@ -12,8 +12,6 @@ caption_source.py ──SOURCE_HELLO / CAPTION_UPDATE──▶ solution_server.p
 
 ## Team members
 
-Confirm the remaining names and student IDs before submission.
-
 | Name | Student ID | Responsibility |
 |---|---|---|
 | Ow Jun Duan | A0308148A | Protocol, caption state and bounded history, server entry point |
@@ -31,7 +29,7 @@ Confirm the remaining names and student IDs before submission.
 | `tests/` | Unit and end-to-end tests (standard-library `unittest`) |
 | `experiments/` | Scripts for T1–T5, the policy comparison and a portable bandwidth emulator |
 | `docs/` | `PROTOCOL.md`, `DESIGN.md`, `DEMO_SCRIPT.md` |
-| `report.pdf` | Required 4-5 page technical report at the repository root; currently missing |
+| `report.pdf` | Required 4-5 page technical report at the repository root; |
 | `experiments/validation_windows/` | Windows development results, validation helpers, and recorded provenance |
 | starter files | `caption_source.py`, `load_clients.py`, `run_demo.py`, `analyse_results.py`, `network_profiles/`, … (unmodified) |
 
@@ -189,20 +187,6 @@ validation integration check are not included in default test discovery.
 Node.js is needed only for the optional browser logic check above, not for
 server startup or Python tests. Browser logic checks do not replace a visual demo.
 
-See the [validation report](experiments/validation_windows/VALIDATION.md),
-[measured summary](experiments/validation_windows/SUMMARY.md), and
-[environment provenance](experiments/validation_windows/provenance/PROVENANCE.json).
-These Windows results were recorded at `3a12ef7`; T1-T4 and the FIFO T3
-comparison each have three runs. The 300-client and proxy-bandwidth probes
-have one run each. They do not reproduce Ubuntu T5 or establish hidden-test scores.
-Historical Ubuntu result artifacts under `experiments/data/` are not present
-in this checkout and must be restored or reproduced before submission.
-
-Submission documentation is still incomplete: `AI_USAGE.md`,
-`CONTRIBUTIONS.md`, and root-level `report.pdf` are missing, two team member
-entries need confirmation, and the mandatory video/demo remains unverified.
-See the [documentation checklist](docs/DOCUMENTATION_CHECKLIST.md).
-
 ## Mandatory deterministic application demo
 
 ```bash
@@ -260,6 +244,21 @@ Full details are in [`docs/DESIGN.md`](docs/DESIGN.md) and the protocol is in
   Slow-reader detection may be delayed until the client library's receive
   buffer fills (16 frames by default in Python `websockets`). See the
   validation report for measured tail latency and remaining evidence gaps.
+
+### Sequential caption-source runs
+
+The server supports repeated deterministic caption-source
+runs without a server restart. When a new source connection
+restarts segment numbering at 1, the hub maps its segment
+IDs onto a continuous session sequence.
+
+To verify this behavior, start the server and run:
+
+    python check_liverecall_repeat.py
+
+This extension supports sequential sources within the same
+server process and does not require modifying the supplied
+caption_source.py.
 
 ## Optional ASR bonus
 
