@@ -171,13 +171,11 @@ python -m experiments.validation_windows.check_overflow_recovery
 node experiments/validation_windows/check_browser.cjs
 ```
 
-The current discovered suite contains 51 tests, including three overload
+The current discovered suite contains 52 tests, including three overload
 contract tests for individual live frames, controlled bandwidth, and simulated
-long-lecture recovery. All 51 passed on Windows after the delivery change at
-`51b0be7`; the strengthened congested-bandwidth scenario also passed separately.
-These correctness checks are not new Ubuntu performance measurements.
+long-lecture recovery. These correctness checks are not new Ubuntu performance measurements.
 The explicit overflow and overflow/reconnect tests also passed on 2026-11-04,
-giving 53 tests across the three test commands. See
+giving 54 tests across the three test commands. See
 [current validation](docs/CURRENT_VALIDATION.md) for scope and evidence limits.
 
 The older recorded validation passed 48 discovered Python tests, the separate
