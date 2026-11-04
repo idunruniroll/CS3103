@@ -45,12 +45,6 @@ commit attribution differs across documents; see
 python experiments/summarise.py experiments/data --output experiments/data/SUMMARY.md
 ```
 
-The Ubuntu `experiments/data/` artifacts are absent from this checkout. Restore
-the results from `bfa2c46` or reproduce them and record the newer tested commit
-before presenting this summary. The Windows summary under
-`experiments/validation_windows/` is separate development evidence and must be
-labeled accordingly; it cannot stand in for Ubuntu T5 measurements.
-
 ## Checklist for the live viva slot
 
 - [ ] venv active, `pip install -r requirements.txt` done
