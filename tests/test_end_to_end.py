@@ -71,6 +71,16 @@ async def collect(ws, until_segment_final, timeout=5.0):
 
 
 class ProtocolBehaviourTest(ServerTestCase):
+    async def test_restarted_source_keeps_client_and_resume_cursors(self):
+        from check_liverecall_repeat import check
+
+        await asyncio.wait_for(check(self.uri, "L1", 3), timeout=15)
+        self.assertEqual(self.hub.sessions["L1"].highest_segment, 6)
+        async with connect(self.uri) as client:
+            await client.send(hello(last_segment=3, last_revision=2))
+            history = json.loads(await asyncio.wait_for(client.recv(), timeout=3))
+        self.assertEqual([item["segment"] for item in history["items"]], [4, 5, 6])
+
     async def test_live_revisions_and_stale_updates(self):
         async with connect(self.uri) as client:
             await client.send(hello())

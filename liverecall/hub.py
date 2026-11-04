@@ -44,6 +44,8 @@ class Session:
         self.name = name
         self.state = CaptionState(retention_seconds=config.retention_seconds)
         self.channels: set[ClientChannel] = set()
+        # Keep the high-water mark even after retained captions expire.
+        self.highest_segment = 0
 
 
 class LiveRecallHub:
@@ -97,6 +99,8 @@ class LiveRecallHub:
             return
         log.info("source connected: session=%s", name)
         state = session.state
+        # Determined by the first valid caption on this source connection.
+        segment_offset: int | None = None
         try:
             async for raw in ws:
                 try:
@@ -113,7 +117,26 @@ class LiveRecallHub:
                         continue
                     if caption.session != name:
                         continue
+                    # The supplied source restarts numbering at 1 on each run.
+                    # Preserve session state and existing client cursors.
+                    if segment_offset is None:
+                        segment_offset = (
+                            session.highest_segment if caption.segment == 1 else 0
+                        )
+                        if segment_offset:
+                            log.info(
+                                "source restarted: session=%s segment_offset=%d",
+                                name, segment_offset,
+                            )
+                    if segment_offset:
+                        # Re-encode the adjusted ID for browsers and load clients.
+                        adjusted_msg = dict(msg)
+                        adjusted_msg["segment"] = caption.segment + segment_offset
+                        caption = caption_from_message(adjusted_msg, name)
                     if state.apply(caption) == ACCEPTED:
+                        session.highest_segment = max(
+                            session.highest_segment, caption.segment
+                        )
                         for channel in session.channels:
                             channel.offer(caption)
                 elif kind == "SOURCE_DONE":
